@@ -1,8 +1,20 @@
 from functools import lru_cache
 from pathlib import Path
 
+import os
+
 import yaml
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _default_database_url() -> str:
+    explicit = os.getenv("DATABASE_URL")
+    if explicit:
+        return explicit
+    if os.getenv("VERCEL"):
+        return "sqlite:////tmp/reviews.db"
+    return "sqlite:///./data/reviews.db"
 
 
 class Settings(BaseSettings):
@@ -10,7 +22,7 @@ class Settings(BaseSettings):
 
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
-    database_url: str = "sqlite:///./data/reviews.db"
+    database_url: str = Field(default_factory=_default_database_url)
     source_config_path: str = "./config/source_config.yaml"
 
 

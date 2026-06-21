@@ -22,21 +22,39 @@ cd frontend && npm install && npm run dev
 
 ### Deploy
 
-**Frontend (Vercel / Netlify)**
-```bash
-cd frontend
-npm run build
-```
-- Root directory: `frontend`
-- Build command: `npm run build`
-- Output: `dist`
-- Set `VITE_API_BASE_URL` to your deployed backend URL + `/api/v1`
+**Vercel (frontend + backend, recommended)**
 
-**Backend (Docker / Render / Railway)**
+This repo uses Vercel **Services** (`experimentalServices` in root `vercel.json`):
+
+| Service | Path | Entry |
+|---------|------|-------|
+| Frontend (Vite) | `/` | `frontend/` |
+| Backend (FastAPI) | `/_/backend` | `backend/app/main.py` |
+
+1. Import the GitHub repo in [Vercel](https://vercel.com).
+2. Set **Framework Preset** to **Services** (Project Settings → Build & Deployment).
+3. Add environment variables:
+   - `GROQ_API_KEY` — Groq API key (enables chat + theme labeling)
+   - `GROQ_MODEL` — optional, default `llama-3.3-70b-versatile`
+   - `DATABASE_URL` — optional on Vercel; defaults to `sqlite:////tmp/reviews.db`
+4. Deploy. The frontend calls the API at `/_/backend/api/v1` on the same domain.
+
+Health check URL: `https://<your-domain>/_/backend/api/v1/health`
+
+Local multi-service preview:
+
+```bash
+npx vercel dev -L
+```
+
+**Backend only (Docker / Render / Railway)**
+
 ```bash
 cd backend
 docker build -t review-engine-api .
 docker run -p 8000:8000 --env-file .env review-engine-api
 ```
+
+For split hosting, set frontend `VITE_API_BASE_URL` to your backend URL + `/api/v1`.
 
 See `architecture.md` for full system design.
