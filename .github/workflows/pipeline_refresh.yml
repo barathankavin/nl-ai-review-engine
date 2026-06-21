@@ -37,16 +37,7 @@ jobs:
       - name: Run full pipeline refresh (Phases 1–4)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          python -c "
-          from app.db.models import SessionLocal, init_db
-          from app.pipeline.orchestrator import run_pipeline
-          init_db()
-          db = SessionLocal()
-          run = run_pipeline(db)
-          db.close()
-          print(f'Pipeline OK: ingested={run.rows_ingested}, clusters={run.new_clusters}, themes={run.themes_relabeled}, groq={run.groq_calls}')
-          "
+        run: python scripts/run_pipeline_refresh.py
 
       - name: Run eval harness (Phase 8)
         env:

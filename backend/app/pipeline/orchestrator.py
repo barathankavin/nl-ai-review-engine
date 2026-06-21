@@ -44,5 +44,6 @@ def run_pipeline(db: Session) -> PipelineRun:
         run.latency_ms = int((time.perf_counter() - timer) * 1000)
         run.failures = failures
         db.commit()
+        db.refresh(run)
 
     return run
