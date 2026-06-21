@@ -1,0 +1,11 @@
+# Monorepo: create TWO Railway services from this repo (same project).
+#
+# Service 1 — review-engine-api
+#   Root directory: backend
+#   Config: backend/railway.toml + backend/Dockerfile
+#
+# Service 2 — review-engine-web
+#   Root directory: frontend
+#   Config: frontend/railway.toml + frontend/Dockerfile
+#
+# See README.md for environment variables and volume setup.

@@ -4,7 +4,7 @@ Natural Language AI Review Engine project.
 
 ## Review Discovery Engine
 
-Full-stack review discovery: n8n → Google Sheets → Python pipeline → React UI with Groq chat.
+Full-stack review discovery: **n8n** → Google Sheets → Python pipeline → React UI with **Groq** chat.
 
 Design system: `frontend/src/styles/design-system.css` (Spotify-inspired tokens).
 
@@ -14,49 +14,90 @@ Design system: `frontend/src/styles/design-system.css` (Spotify-inspired tokens)
 # Backend
 cd backend && python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
+set PYTHONPATH=.
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-# Frontend
+# Frontend (separate terminal)
 cd frontend && npm install && npm run dev
 ```
 
-### Deploy
+Open http://127.0.0.1:5173 — Vite proxies `/api/v1` to the backend.
 
-**Vercel (frontend + backend, recommended)**
+### Deploy on Railway (recommended)
 
-This repo uses Vercel **Services** (`experimentalServices` in root `vercel.json`):
+Deploy **two services** from this monorepo in one Railway project.
 
-| Service | Path | Entry |
-|---------|------|-------|
-| Frontend (Vite) | `/` | `frontend/` |
-| Backend (FastAPI) | `/_/backend` | `backend/app/main.py` |
+#### 1. Backend — `review-engine-api`
 
-1. Import the GitHub repo in [Vercel](https://vercel.com).
-2. Set **Framework Preset** to **Services** (Project Settings → Build & Deployment).
-3. Add environment variables:
-   - `GROQ_API_KEY` — Groq API key (enables chat + theme labeling)
-   - `GROQ_MODEL` — optional, default `llama-3.3-70b-versatile`
-   - `DATABASE_URL` — optional on Vercel; defaults to `sqlite:////tmp/reviews.db`
-4. Deploy. The frontend calls the API at `/_/backend/api/v1` on the same domain.
+| Setting | Value |
+|---------|--------|
+| Root directory | `backend` |
+| Builder | Dockerfile (`backend/Dockerfile`) |
+| Health check | `/api/v1/health` |
 
-Health check URL: `https://<your-domain>/_/backend/api/v1/health`
+**Environment variables**
 
-**Vercel bundle limits:** the backend uses a lightweight `pyproject.toml` (no `sentence-transformers` / clustering). Pipeline refresh on Vercel returns 503 — run **Pipeline Refresh** via GitHub Actions or deploy the full backend on Railway/Docker. Chat still works via Groq with keyword-based review retrieval.
+| Variable | Required | Example |
+|----------|----------|---------|
+| `GROQ_API_KEY` | Yes | From [console.groq.com](https://console.groq.com) |
+| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` |
+| `DATABASE_URL` | No | `sqlite:////app/data/reviews.db` (default in Docker) |
+| `PYTHONPATH` | No | `/app` |
+| `FRONTEND_URL` | No | `https://your-frontend.up.railway.app` |
 
-Local multi-service preview:
+**Volume (recommended):** mount `/app/data` so SQLite survives redeploys.
 
-```bash
-npx vercel dev -L
+Generate a public domain for the API, e.g. `https://review-engine-api-production.up.railway.app`.
+
+#### 2. Frontend — `review-engine-web`
+
+| Setting | Value |
+|---------|--------|
+| Root directory | `frontend` |
+| Builder | Dockerfile (`frontend/Dockerfile`) |
+
+**Environment variables**
+
+| Variable | Required | Example |
+|----------|----------|---------|
+| `VITE_API_BASE_URL` | Yes | `https://review-engine-api-production.up.railway.app/api/v1` |
+
+Use Railway variable references after the backend service exists:
+
+```text
+VITE_API_BASE_URL=https://${{review-engine-api.RAILWAY_PUBLIC_DOMAIN}}/api/v1
 ```
 
-**Backend only (Docker / Render / Railway)**
+Replace `review-engine-api` with your backend service name if different.
+
+Generate a public domain for the frontend. Set `FRONTEND_URL` on the backend to that URL.
+
+#### 3. Data flow (n8n + Groq)
+
+```text
+n8n (Apify scrape) → Google Sheet
+        ↓
+Backend ingest (/api/v1/refresh) + GitHub Actions Pipeline Refresh
+        ↓
+SQLite on Railway volume → Groq chat + pattern UI
+```
+
+- **n8n** keeps writing reviews to the Google Sheet (no Railway change needed).
+- **Groq** runs on the Railway backend via `GROQ_API_KEY`.
+- **Scheduled refresh:** GitHub Actions → **Pipeline Refresh** (add `GROQ_API_KEY` repo secret), or click **Sync data** in the UI.
+
+#### Verify deployment
+
+1. `GET https://<api-domain>/api/v1/health` → `groq_enabled: true`, `pipeline_ml_available: true`
+2. Open the frontend URL → patterns load after first pipeline refresh
+3. Chat panel answers with Groq
+
+### Docker (local / self-hosted)
 
 ```bash
 cd backend
 docker build -t review-engine-api .
 docker run -p 8000:8000 --env-file .env review-engine-api
 ```
-
-For split hosting, set frontend `VITE_API_BASE_URL` to your backend URL + `/api/v1`.
 
 See `architecture.md` for full system design.

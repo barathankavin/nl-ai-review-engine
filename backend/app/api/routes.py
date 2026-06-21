@@ -213,14 +213,20 @@ def chat_logs(db: Session = Depends(get_db)):
 
 
 def create_app():
+    import os
+
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
     init_db()
     app = FastAPI(title="Review Discovery Engine API", version="1.0.0")
+
+    frontend_url = os.getenv("FRONTEND_URL", "").strip()
+    cors_origins = [frontend_url] if frontend_url else ["*"]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

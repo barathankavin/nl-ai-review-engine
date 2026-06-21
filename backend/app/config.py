@@ -12,8 +12,8 @@ def _default_database_url() -> str:
     explicit = os.getenv("DATABASE_URL")
     if explicit:
         return explicit
-    if os.getenv("VERCEL"):
-        return "sqlite:////tmp/reviews.db"
+    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY"):
+        return "sqlite:////app/data/reviews.db"
     return "sqlite:///./data/reviews.db"
 
 
