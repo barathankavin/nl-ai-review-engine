@@ -9,8 +9,16 @@
       "entrypoint": "backend/app/main.py",
       "routePrefix": "/_/backend",
       "framework": "fastapi",
-      "memory": 3008,
-      "maxDuration": 300
+      "memory": 1024,
+      "maxDuration": 60,
+      "excludeFiles": [
+        "backend/requirements.txt",
+        "backend/Dockerfile",
+        "backend/scripts/**",
+        "backend/data/**",
+        "**/__pycache__/**",
+        "**/.venv/**"
+      ]
     }
   }
 }

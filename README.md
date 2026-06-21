@@ -41,6 +41,8 @@ This repo uses Vercel **Services** (`experimentalServices` in root `vercel.json`
 
 Health check URL: `https://<your-domain>/_/backend/api/v1/health`
 
+**Vercel bundle limits:** the backend uses a lightweight `pyproject.toml` (no `sentence-transformers` / clustering). Pipeline refresh on Vercel returns 503 — run **Pipeline Refresh** via GitHub Actions or deploy the full backend on Railway/Docker. Chat still works via Groq with keyword-based review retrieval.
+
 Local multi-service preview:
 
 ```bash

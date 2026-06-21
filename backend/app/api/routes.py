@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.models import ChatLog, PipelineRun, Review, Theme, ThemeMetric, get_db, init_db
-from app.pipeline.orchestrator import run_pipeline
 from app.rag.chat import answer_query, get_chat_status
 
 router = APIRouter(prefix="/api/v1")
@@ -28,6 +27,12 @@ def health(db: Session = Depends(get_db)):
     review_count = db.query(Review).count()
     theme_count = db.query(Theme).filter(Theme.status == "active").count()
     chat_status = get_chat_status()
+    try:
+        import sentence_transformers  # noqa: F401
+
+        pipeline_ml_available = True
+    except ImportError:
+        pipeline_ml_available = False
     return {
         "status": "ok",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -35,6 +40,7 @@ def health(db: Session = Depends(get_db)):
         "themes": theme_count,
         "groq_enabled": chat_status["groq_enabled"],
         "groq_model": chat_status["groq_model"],
+        "pipeline_ml_available": pipeline_ml_available,
     }
 
 
@@ -46,7 +52,14 @@ def chat_status():
 @router.post("/refresh")
 def refresh(db: Session = Depends(get_db)):
     try:
+        from app.pipeline.orchestrator import run_pipeline
+
         run = run_pipeline(db)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

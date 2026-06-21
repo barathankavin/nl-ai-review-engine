@@ -1,28 +1,44 @@
 import pickle
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 
-import hdbscan
-import numpy as np
-from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
 
 from app.config import get_source_config
 from app.db.models import Review, ReviewEmbedding
 
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
+
+
+def _load_ml_deps() -> tuple[Any, Any, Any]:
+    try:
+        import hdbscan
+        import numpy as np
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise RuntimeError(
+            "ML pipeline dependencies are not installed. "
+            "Run the full pipeline via GitHub Actions, Railway, or Docker."
+        ) from exc
+    return hdbscan, np, SentenceTransformer
+
 
 class Embedder:
-    _model: SentenceTransformer | None = None
+    _model: "SentenceTransformer | None" = None
 
     @classmethod
-    def get_model(cls) -> SentenceTransformer:
+    def get_model(cls) -> "SentenceTransformer":
         if cls._model is None:
+            _, _, SentenceTransformer = _load_ml_deps()
             config = get_source_config()
             cls._model = SentenceTransformer(config["clustering"]["embedding_model"])
         return cls._model
 
 
 def embed_and_cluster(db: Session) -> tuple[int, int]:
+    hdbscan, np, _ = _load_ml_deps()
     config = get_source_config()
     english_reviews = (
         db.query(Review)
@@ -62,12 +78,14 @@ def embed_and_cluster(db: Session) -> tuple[int, int]:
     return len(english_reviews), new_clusters
 
 
-def get_review_vectors(db: Session, review_ids: list[str]) -> dict[str, np.ndarray]:
+def get_review_vectors(db: Session, review_ids: list[str]) -> dict[str, Any]:
+    _, np, _ = _load_ml_deps()
     rows = db.query(ReviewEmbedding).filter(ReviewEmbedding.review_id.in_(review_ids)).all()
     return {row.review_id: pickle.loads(row.vector) for row in rows}
 
 
 def search_similar_reviews(db: Session, query: str, limit: int = 8) -> list[Review]:
+    _, np, _ = _load_ml_deps()
     english_reviews = db.query(Review).filter(Review.lang == "en", Review.review_text != "").all()
     if not english_reviews:
         return []

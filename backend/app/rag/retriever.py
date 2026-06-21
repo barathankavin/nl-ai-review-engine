@@ -1,10 +1,11 @@
-import json
+"""Keyword and optional semantic review retrieval for RAG."""
 
-from sqlalchemy import func
+import re
+
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.db.models import Review, Theme, ThemeMetric
-from app.pipeline.embed_cluster import search_similar_reviews
 
 
 def _query_expansions(query: str) -> list[str]:
@@ -50,6 +51,29 @@ def _query_expansions(query: str) -> list[str]:
     return list(dict.fromkeys(expansions))
 
 
+def _search_terms(query: str) -> list[str]:
+    return [term for term in re.split(r"\W+", query.lower()) if len(term) > 2]
+
+
+def _keyword_search_reviews(db: Session, query: str, limit: int = 8) -> list[Review]:
+    terms = _search_terms(query)
+    base = db.query(Review).filter(Review.review_text != "")
+
+    if terms:
+        filters = [Review.review_text.ilike(f"%{term}%") for term in terms[:6]]
+        matched = base.filter(or_(*filters)).order_by(Review.thumbs_up.desc()).limit(limit).all()
+        if matched:
+            return matched
+
+    return base.order_by(Review.thumbs_up.desc()).limit(limit).all()
+
+
+def _semantic_search_reviews(db: Session, query: str, limit: int = 8) -> list[Review]:
+    from app.pipeline.embed_cluster import search_similar_reviews
+
+    return search_similar_reviews(db, query, limit=limit)
+
+
 def build_dataset_summary(db: Session) -> str:
     total = db.query(Review).count()
     if total == 0:
@@ -82,6 +106,8 @@ def build_dataset_summary(db: Session) -> str:
 
 
 def build_theme_context(db: Session, limit: int | None = 10) -> tuple[str, list[str]]:
+    import json
+
     query = (
         db.query(Theme, ThemeMetric)
         .join(ThemeMetric, ThemeMetric.theme_id == Theme.id, isouter=True)
@@ -135,7 +161,10 @@ def build_review_context(reviews: list[Review]) -> tuple[str, list[str]]:
 
 
 def retrieve_reviews_for_query(db: Session, query: str, limit: int = 8) -> list[Review]:
-    return search_similar_reviews(db, query, limit=limit)
+    try:
+        return _semantic_search_reviews(db, query, limit=limit)
+    except (ImportError, RuntimeError):
+        return _keyword_search_reviews(db, query, limit=limit)
 
 
 def retrieve_multi_query_reviews(db: Session, query: str, per_query: int = 6, max_total: int = 24) -> list[Review]:
@@ -143,7 +172,7 @@ def retrieve_multi_query_reviews(db: Session, query: str, per_query: int = 6, ma
     collected: list[Review] = []
 
     for expansion in _query_expansions(query):
-        for review in search_similar_reviews(db, expansion, limit=per_query):
+        for review in retrieve_reviews_for_query(db, expansion, limit=per_query):
             if review.id in seen:
                 continue
             seen.add(review.id)

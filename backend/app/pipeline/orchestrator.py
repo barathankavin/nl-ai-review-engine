@@ -5,13 +5,14 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.db.models import PipelineRun
-from app.pipeline.embed_cluster import embed_and_cluster
-from app.pipeline.ingest import ingest_reviews
-from app.pipeline.label import label_themes
-from app.pipeline.quantify import quantify_themes
 
 
 def run_pipeline(db: Session) -> PipelineRun:
+    from app.pipeline.embed_cluster import embed_and_cluster
+    from app.pipeline.ingest import ingest_reviews
+    from app.pipeline.label import label_themes
+    from app.pipeline.quantify import quantify_themes
+
     run_id = str(uuid.uuid4())
     started = datetime.now(timezone.utc)
     timer = time.perf_counter()
