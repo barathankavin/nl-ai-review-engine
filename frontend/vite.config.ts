@@ -9,6 +9,26 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      outDir: 'dist',
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+          },
+        },
+      },
+    },
+    preview: {
+      port: 4173,
+      proxy: {
+        '/api/v1': {
+          target: env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+      },
+    },
     server: {
       proxy: {
         '/api/reviews.csv': {
@@ -16,6 +36,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () =>
             `/spreadsheets/d/${sheetId}/export?format=csv&gid=${sheetGid}`,
+        },
+        '/api/v1': {
+          target: env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
+          changeOrigin: true,
         },
       },
     },

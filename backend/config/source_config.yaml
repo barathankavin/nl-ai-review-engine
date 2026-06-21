@@ -1,0 +1,43 @@
+sheet:
+  id: "1BL-09eLm61Zy3OLFxxqQVLf-I148dC30qbaKWa618wI"
+  name: "NL Spotify review Scrapped data"
+  tab: "Sheet1"
+  gid: "0"
+  csv_url: "https://docs.google.com/spreadsheets/d/1BL-09eLm61Zy3OLFxxqQVLf-I148dC30qbaKWa618wI/export?format=csv&gid=0"
+
+source:
+  platform: "google_play"
+  product: "com.spotify.music"
+  region: "India"
+
+dedupe:
+  primary_key: "id"
+  fallback_hash_fields: ["text", "date", "userName"]
+
+column_mapping:
+  id: id
+  userName: user_name
+  userImage: user_image
+  date: review_date
+  score: rating
+  scoreText: score_text
+  url: url
+  title: title
+  text: review_text
+  replyDate: reply_date
+  replyText: reply_text
+  version: app_version
+  thumbsUp: thumbs_up
+  criterias: criterias
+
+clustering:
+  min_cluster_size: 5
+  min_samples: 2
+  embedding_model: "BAAI/bge-small-en-v1.5"
+
+labeling:
+  relabel_growth_threshold: 0.15
+  sample_size: 8
+
+quantify:
+  trend_window_days: 7

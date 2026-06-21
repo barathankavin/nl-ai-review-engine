@@ -3,6 +3,7 @@ interface HeaderProps {
   sourceLabel: string;
   lastSynced: Date | null;
   loading: boolean;
+  backendOnline?: boolean;
   onRefresh: () => void;
 }
 
@@ -11,38 +12,44 @@ export function Header({
   sourceLabel,
   lastSynced,
   loading,
+  backendOnline = false,
   onRefresh,
 }: HeaderProps) {
   return (
     <header className="header">
       <div className="header__brand">
-        <div className="header__logo" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
+        <img
+          src="/spotify-icon.png"
+          alt="Spotify"
+          className="header__logo"
+          width={48}
+          height={48}
+        />
         <div>
-          <p className="header__eyebrow">NL · AI Review Engine</p>
-          <h1>Review Discovery Engine</h1>
+          <p className="eyebrow">NL · Review Discovery</p>
+          <h1 className="header__title">Patterns from Play Store reviews</h1>
           <p className="header__subtitle">
-            Live feed from <strong>{sheetName}</strong> · {sourceLabel}
+            {sheetName} · {sourceLabel}
           </p>
         </div>
       </div>
 
       <div className="header__actions">
+        <span className={`pill ${backendOnline ? 'pill--online' : 'pill--offline'}`}>
+          {backendOnline ? 'Live pipeline' : 'Offline'}
+        </span>
         {lastSynced && (
           <p className="header__sync">
-            Synced {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            Updated {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
         <button
           type="button"
-          className="button button--primary"
+          className="btn btn--primary"
           onClick={onRefresh}
           disabled={loading}
         >
-          {loading ? 'Refreshing…' : 'Refresh data'}
+          {loading ? 'Syncing…' : 'Sync data'}
         </button>
       </div>
     </header>

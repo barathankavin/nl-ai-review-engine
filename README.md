@@ -2,29 +2,41 @@
 
 Natural Language AI Review Engine project.
 
-## Review Discovery Engine (frontend)
+## Review Discovery Engine
 
-React dashboard that reads scraped Spotify Google Play reviews from the Google Sheet synced by the n8n workflow (**NL Spotify review Scrapped data**).
+Full-stack review discovery: n8n → Google Sheets → Python pipeline → React UI with Groq chat.
+
+Design system: `frontend/src/styles/design-system.css` (Spotify-inspired tokens).
 
 ### Run locally
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# Backend
+cd backend && python -m venv .venv && .venv\Scripts\activate
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# Frontend
+cd frontend && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. The dev server proxies `/api/reviews.csv` to the Google Sheet CSV export.
+### Deploy
 
-### Configuration
+**Frontend (Vercel / Netlify)**
+```bash
+cd frontend
+npm run build
+```
+- Root directory: `frontend`
+- Build command: `npm run build`
+- Output: `dist`
+- Set `VITE_API_BASE_URL` to your deployed backend URL + `/api/v1`
 
-Copy `frontend/.env.example` to `frontend/.env` if needed. Defaults point at sheet `1BL-09eLm61Zy3OLFxxqQVLf-I148dC30qbaKWa618wI`.
+**Backend (Docker / Render / Railway)**
+```bash
+cd backend
+docker build -t review-engine-api .
+docker run -p 8000:8000 --env-file .env review-engine-api
+```
 
-For production builds without the Vite proxy, set `VITE_REVIEWS_CSV_URL` to the public CSV export URL (sheet must be shared as “Anyone with the link can view”).
-
-### Features
-
-- Live sync from Google Sheets (same columns as the n8n workflow)
-- Search, rating filters, developer reply filter, sorting
-- Stats: average rating, distribution, reply rate
-- Review cards with Play Store links and Spotify responses
+See `architecture.md` for full system design.
