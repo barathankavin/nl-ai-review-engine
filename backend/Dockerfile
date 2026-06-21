@@ -15,13 +15,10 @@ COPY scripts ./scripts
 
 ENV PYTHONPATH=/app
 ENV DATABASE_URL=sqlite:////app/data/reviews.db
-ENV PORT=8000
 
 RUN mkdir -p /app/data
 
-COPY start.sh .
-RUN chmod +x start.sh
-
 EXPOSE 8000
 
-CMD ["./start.sh"]
+# Shell form expands $PORT at runtime (Railway injects a dynamic port).
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
