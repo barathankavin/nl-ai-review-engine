@@ -1,5 +1,6 @@
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -7,7 +8,19 @@ from sqlalchemy.orm import Session
 from app.db.models import PipelineRun
 
 
-def run_pipeline(db: Session) -> PipelineRun:
+@dataclass(frozen=True)
+class PipelineRunResult:
+    id: str
+    success: bool
+    rows_ingested: int
+    new_clusters: int
+    themes_relabeled: int
+    groq_calls: int
+    latency_ms: int
+    failures: str
+
+
+def run_pipeline(db: Session) -> PipelineRunResult:
     from app.pipeline.embed_cluster import embed_and_cluster
     from app.pipeline.ingest import ingest_reviews
     from app.pipeline.label import label_themes
@@ -46,4 +59,13 @@ def run_pipeline(db: Session) -> PipelineRun:
         db.commit()
         db.refresh(run)
 
-    return run
+    return PipelineRunResult(
+        id=run.id,
+        success=run.success,
+        rows_ingested=run.rows_ingested,
+        new_clusters=run.new_clusters,
+        themes_relabeled=run.themes_relabeled,
+        groq_calls=run.groq_calls,
+        latency_ms=run.latency_ms,
+        failures=run.failures,
+    )

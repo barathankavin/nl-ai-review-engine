@@ -71,6 +71,7 @@ def refresh(db: Session = Depends(get_db)):
         "themes_relabeled": run.themes_relabeled,
         "groq_calls": run.groq_calls,
         "latency_ms": run.latency_ms,
+        "failures": run.failures,
     }
 
 
