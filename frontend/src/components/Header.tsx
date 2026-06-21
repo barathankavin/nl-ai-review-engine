@@ -25,9 +25,11 @@ export function Header({
           width={48}
           height={48}
         />
-        <div>
-          <p className="eyebrow">NL · Review Discovery</p>
-          <h1 className="header__title">Patterns from Play Store reviews</h1>
+        <div className="header__brand-text">
+          <h1 className="header__title">
+            <span className="header__title-main">AI-Powered Review Discovery Engine</span>
+            <span className="header__title-accent"> - Spotify</span>
+          </h1>
           <p className="header__subtitle">
             {sheetName} · {sourceLabel}
           </p>
